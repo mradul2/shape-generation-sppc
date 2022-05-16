@@ -1,5 +1,6 @@
 import os 
 import glob
+import numpy as np
 
 class PCD():
     """
@@ -19,12 +20,14 @@ class PCD():
         self.points = self.file.readline()
         self.data = self.file.readline()
 
-        self.points = []
+        self.data_points = []
         for line in self.file:
             line = line.split()
             if line:
                 line = [float(i) for i in line]
-                self.points.append(line)
+                self.data_points.append(line)
+        
+        self.np_data = np.array(self.data_points)
 
     def __len__(self):
-        return len(self.points)
+        return len(self.data_points)

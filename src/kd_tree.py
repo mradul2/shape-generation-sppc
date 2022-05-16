@@ -1,38 +1,24 @@
-from pc_data import PCD
-
-class Node():
-    def __init__(self, point, parent, depth, left_children, right_children):
-        self.point = point
-        self.parent = parent
-        self.depth = depth
-        self.splitting_axes = self.depth%3
-        self.left_childern = left_children
-        self.right_children = right_children
-    def is_root(self):
-        if self.parent is None:
-            return True
-        else:
-            return False
-
+from src.pc_data import PCD
+import numpy as np
+import time
 class KdTree():
-    def __init__(self, pcd: PCD):
-        self.pcd = pcd  
-        self.num = len(self.pcd)
-        self.points = self.pcd.points
+    def __init__(self, points: np.ndarray):
+        self.points = points.copy()
+        self.num = self.points.shape[0]
+        self.build_tree()
 
     def build_tree(self):
-        median, left, right = self.partition(self.points, 0)
-        self.root = Node(median, None, 0)
+        start_time = time.time()
+        self.partition(self.points, depth=0, start=0, end=self.num-1)
+        end_time = time.time()
+        print("Time elapsed for building the Kd Tree (In seconds): ", end_time - start_time)
 
-        
-    def partition(points: list, depth: int):
+    def partition(self, points: np.ndarray, depth: int, start: int, end: int):
+        if end <= start:
+            return 
         dimension = depth%3
-        points.sort(key = lambda list: list[dimension])    
-        median = len(points)//2
-        left_children = points[:median]
-        right_children = points[median + 1:]
-
-        return points[median], left_children, right_children
-
-    def sorted_list(self):
-        pass
+        points[start:end+1] = points[start + points[start:end+1, dimension].argsort()]
+        median = start + ((end - start + 1) // 2)
+        depth += 1
+        self.partition(points, depth, start, median-1)
+        self.partition(points, depth, median+1, end)
