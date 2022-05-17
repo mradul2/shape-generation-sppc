@@ -1,6 +1,7 @@
 from src.pc_data import PCD
 import numpy as np
 import time
+
 class KdTree():
     def __init__(self, points: np.ndarray):
         self.points = points.copy()
@@ -11,7 +12,7 @@ class KdTree():
         start_time = time.time()
         self.partition(self.points, depth=0, start=0, end=self.num-1)
         end_time = time.time()
-        print("Time elapsed for building the Kd Tree (In seconds): ", end_time - start_time)
+        # print("Time elapsed for building the Kd Tree (In seconds): ", end_time - start_time)
 
     def partition(self, points: np.ndarray, depth: int, start: int, end: int):
         if end <= start:

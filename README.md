@@ -9,10 +9,6 @@ This repository implements the following utilities:
 
 ## Various methods used in the work
 
-### Point Cloud Data
-
-PCD file first contains a header containing information about the point cloud data followed by the data itself.
-
 ### Poisson Disc Sampling
 
 
@@ -41,12 +37,21 @@ Before KdTree              |  After KdTree
 
 ### Principal Component Analysis
 
-Principal Component Analysis (PCA) is a method to for dimensionality reduction of a dataset and to speed up the applied algorithm. 
-Before applying PCA to any dataset, first the dataset needs to be standardized onto a unit scale where the mean is 0 and variance is 1.
+Principal Component Analysis (PCA) is a method to for dimensionality reduction of a dataset and to speed up the applied algorithm.
 
 In this case, we apply PCA on the sorted point cloud by generating a matrix of size 3N x S, where N is number of points in each shape and S is the number of shapes in the dataset. And then perform PCA on the matrix: P = UΣV, resulting in the linear shape basis U and projections V. By default, the size of shape basis is chosen to be B = 100. 
 
+### Learning Shape Coefficients Using GAN
 
 ## Requirements
 
+```bash
+pip3 install requirements.txt
+```
+
 ## Usage
+
+```bash
+python3 main.py [--mode MODE] [--load_path PATH]
+                [--save_path PATH] 
+```
