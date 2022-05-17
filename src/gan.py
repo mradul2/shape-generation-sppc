@@ -168,7 +168,7 @@ class GAN():
         self.discriminator.train()
         self.generator.train()
 
-        for epoch in range(5):
+        for epoch in range(self.num_epoch):
             avg_g_loss = 0
             avg_d_loss = 0
             for batch in self.train_loader:

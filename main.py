@@ -71,6 +71,7 @@ def main():
     argparser.add_argument(
         '--bs',
         default=16,
+        type=int,
         help='Training batch size')
     argparser.add_argument(
         '--glr',
@@ -79,10 +80,12 @@ def main():
     argparser.add_argument(
         '--dlr',
         default=0.0001,
+        type=float,
         help='Learning rate for discriminator')
     argparser.add_argument(
         '--epoch',
         default=1000,
+        type=int,
         help='Total number of Epochs')
     
     args = argparser.parse_args()
