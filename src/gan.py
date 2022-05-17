@@ -110,11 +110,16 @@ class GAN():
         self.num_epoch = self.args.epoch
         self.batch_size = self.args.bs
 
+        self.device = 'cpu'
+        self.is_cuda_available = torch.cuda.is_available()
+        if self.is_cuda_available:
+            self.device = 'cuda'
+
         self.train_data_path = self.args.load_path
         self.model_save_dir = self.args.save_path
 
-        self.generator = Generator(self.num_feat, self.num_feat)
-        self.discriminator = Discriminator(self.num_feat, self.num_feat)
+        self.generator = Generator(self.num_feat, self.num_feat).to(self.device)
+        self.discriminator = Discriminator(self.num_feat, self.num_feat).to(self.device)
 
         self.train_dataset = TrainingDataset(self.train_data_path)
         self.train_loader = DataLoader(self.train_dataset, self.batch_size, shuffle=True)
@@ -131,11 +136,11 @@ class GAN():
         self.d_optim.zero_grad()
 
         prediction_real, f_3, f_2, f_1 = self.discriminator(real_data) # (batch size, num feat)
-        loss_real = self.d_criterion(prediction_real, torch.ones((real_data.shape[0], self.num_feat)))
+        loss_real = self.d_criterion(prediction_real, torch.ones((real_data.shape[0], self.num_feat)).to(self.device))
         loss_real.backward()
 
         prediction_fake, r_3, r_2, r_1 = self.discriminator(fake_data) # (batch size, num feat)
-        loss_fake = self.d_criterion(prediction_fake, torch.zeros((fake_data.shape[0], self.num_feat)))
+        loss_fake = self.d_criterion(prediction_fake, torch.zeros((fake_data.shape[0], self.num_feat)).to(self.device))
         loss_fake.backward()
 
         self.d_optim.step()
@@ -167,16 +172,16 @@ class GAN():
             avg_g_loss = 0
             avg_d_loss = 0
             for batch in self.train_loader:
-                data = batch.float() # (batch size, num feat)
+                data = batch.float().to(self.device) # (batch size, num feat)
 
                 # First Train the Discriminator with fake data generated and real data present
-                fake_data = self.generator(self.generate_noise(data.shape[0])) # (batch size, num feat)
+                fake_data = self.generator(self.generate_noise(data.shape[0]).to(self.device)) # (batch size, num feat)
                 real_data = data # (batch size, num feat)
                 d_loss = self.train_discriminator(fake_data, real_data)
                 avg_d_loss += d_loss
 
                 # Second, Train the Generator with another fake data
-                fake_data = self.generator(self.generate_noise(data.shape[0]))
+                fake_data = self.generator(self.generate_noise(data.shape[0]).to(self.device))
                 g_loss = self.train_generator(fake_data, real_data)
                 avg_g_loss += g_loss
 
