@@ -55,3 +55,8 @@ pip3 install requirements.txt
 python3 main.py [--mode MODE] [--load_path PATH]
                 [--save_path PATH] 
 ```
+
+## References
+
+- sklearn.decomposition.PCA [Link](https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html)
+- Vanilla GAN [Link](https://github.com/safwankdb/Vanilla-GAN)
