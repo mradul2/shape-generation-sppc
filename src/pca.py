@@ -70,17 +70,20 @@ class PCA_():
         avg_loss = 0
         for shape in tqdm(range(self.num_data)):
             for _ in range(K):
-                shape_matrix = self.matrix[shape].copy() # (1000, 3)
-                recon_error_prev = self.reconstruction_error(shape_matrix)
+                recon_error_prev = self.reconstruction_error(self.matrix[shape])
                 random_nums = random.sample(range(0, self.num_point_cloud), 2)
-                temp = shape_matrix[random_nums[0]]
-                shape_matrix[random_nums[0]] = shape_matrix[random_nums[1]]
-                shape_matrix[random_nums[1]] = temp
-                recon_error = self.reconstruction_error(shape_matrix)
-                if recon_error < recon_error_prev:
-                    self.matrix[shape][random_nums[0]] = shape_matrix[random_nums[0]]
-                    self.matrix[shape][random_nums[1]] = shape_matrix[random_nums[1]]
-            avg_loss += self.reconstruction_error(shape_matrix)
+                temp0 = self.matrix[shape][random_nums[0]]
+                temp1 = self.matrix[shape][random_nums[1]]
+                # Swap the two random points and calc the recon error
+                self.matrix[shape][random_nums[0]] = temp1
+                self.matrix[shape][random_nums[1]] = temp0
+                recon_error = self.reconstruction_error(self.matrix[shape])
+                # If the reconstruction error increased then do not swap
+                if recon_error > recon_error_prev:
+                    self.matrix[shape][random_nums[0]] = temp0
+                    self.matrix[shape][random_nums[1]] = temp1
+            avg_loss += self.reconstruction_error(self.matrix[shape])
         avg_loss /= self.num_data
         print(avg_loss)
+        # After every shape is processed, recompute the PCA basis
         self.fit_once()
