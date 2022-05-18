@@ -28,7 +28,7 @@ class PCA_():
         return matrix_reshape
 
     def rereshape(self, matrix):
-        matrix_reshape = np.reshape(matrix, (self.num_data, self.num_point_cloud, self.num_point_cloud_dim))
+        matrix_reshape = np.reshape(matrix, (matrix.shape[0], self.num_point_cloud, self.num_point_cloud_dim))
         return matrix_reshape
 
     def normalize(self, matrix):
@@ -72,7 +72,3 @@ class PCA_():
         avg_loss /= self.num_data
         print(avg_loss)
         self.fit_once()
-        
-
-                 
- 

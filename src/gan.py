@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import wandb
+from tqdm import tqdm
 from cv2 import transform
 from jinja2 import pass_environment
 from torch.utils.data import DataLoader, Dataset
@@ -45,7 +46,8 @@ class Generator(nn.Module):
         x = self.act3(x)
 
         x = self.fc4(x)
-        x = self.act4(x)
+        # No avtivation function
+        # x = self.act4(x)
 
         return x
 
@@ -100,9 +102,8 @@ class TrainingDataset(Dataset):
         # Convert the numpy array to torch tensor
         output = torch.from_numpy(output)
         # Normalised the data between (-1,1) for the input to the discriminator
-        # mean, std = torch.mean(output), torch.std(output)
-        # output = (output - mean) / std
-        output = nn.Tanh()(output)
+        # To normalise the data betweem (-1, 1)
+        # output = nn.Tanh()(output)
         return output
 
 class GAN():
@@ -123,13 +124,11 @@ class GAN():
             self.device = 'cuda'
 
         self.train_data_path = self.args.load_path
+        self.pretrained_path = self.args.load_path
         self.model_save_dir = self.args.save_path
 
         self.generator = Generator(self.num_feat, self.num_feat).to(self.device)
         self.discriminator = Discriminator(self.num_feat, self.num_feat).to(self.device)
-
-        self.train_dataset = TrainingDataset(self.train_data_path)
-        self.train_loader = DataLoader(self.train_dataset, self.batch_size, shuffle=True)
 
         self.g_optim = torch.optim.Adam(self.generator.parameters(), self.generator_lr)
         self.d_optim = torch.optim.Adam(self.discriminator.parameters(), self.discriminator_lr)
@@ -172,11 +171,16 @@ class GAN():
         intermediate_act_fake = prediction_fake + f_3/2 + f_2/4 + f_1/8
         intermediate_act_real = prediction_real + r_3/2 + r_2/4 + r_1/8
 
+        # Loss function mentioned in the paper which uses intermediate activations of the generator
+        # And calculate the L2 norm of mean and variance between them
         loss_E = self.g_criterion(intermediate_act_fake, intermediate_act_real)
         loss_C = self.g_criterion(torch.var(intermediate_act_fake, 0), torch.var(intermediate_act_real, 0))
 
         loss = loss_E + loss_C
+
+        # Vanilla loss for generator:
         # loss = self.d_criterion(prediction_fake, torch.ones((fake_data.shape[0], self.num_feat)).to(self.device))
+       
         loss.backward()
 
         self.g_optim.step()
@@ -189,38 +193,42 @@ class GAN():
             self.g_acc = acc
 
     def train(self):    
+        self.train_dataset = TrainingDataset(self.train_data_path)
+        self.train_loader = DataLoader(self.train_dataset, self.batch_size, shuffle=True)
+
         self.discriminator.train()
         self.generator.train()
 
-        for epoch in range(self.num_epoch):
+        for epoch in tqdm(range(self.num_epoch)):
             avg_g_loss = 0
             avg_d_loss = 0
             prev_d_loss = 0
             for batch in self.train_loader:
                 data = batch.float().to(self.device) # (batch size, num feat)
-                noise = self.generate_noise(data.shape[0]).to(self.device).to(self.device)
+                noise = self.generate_noise(data.shape[0]).to(self.device)
 
                 # First Train the Discriminator with fake data generated and real data present
                 fake_data = self.generator(noise) # (batch size, num feat)
                 real_data = data # (batch size, num feat)
-
-                # print(real_data[0])
-                # return
-
+                # According to the paper, discriminator is trained only when the accuracy is below 80%
                 if self.g_acc < 0.8:
                     d_loss = self.train_discriminator(fake_data, real_data)
                     avg_d_loss += d_loss
                     prev_d_loss = d_loss
                 else:
                     avg_d_loss += prev_d_loss
+                # Discriminator training step completed
 
                 # Second, Train the Generator with another fake data
                 fake_data = self.generator(noise)
                 g_loss = self.train_generator(fake_data, real_data)
                 avg_g_loss += g_loss
+                # Generator training step completed
 
+                # Update accuracy
                 self.acc_discriminator(real_data, fake_data)
                 self.acc_generator(fake_data)
+
 
             print("For Epoch: ", epoch)
             print("Generator Loss: ", avg_g_loss/len(self.train_loader))
@@ -244,3 +252,18 @@ class GAN():
     def generate_noise(self, num_points: int):
         noise = torch.randn((num_points, self.num_feat))
         return noise
+
+    def load_weights(self):
+        g_model_file = os.path.join(self.pretrained_path, 'generator.pth')
+        # d_model_file = os.path.join(self.pretrained_path, 'discriminator.pth')
+
+        if self.device == 'cpu':
+            self.generator.load_state_dict(torch.load(g_model_file, map_location=torch.device('cpu')))
+        else:
+            self.generator.load_state_dict(torch.load(g_model_file))
+        # self.discriminator.load_state_dict(torch.load(d_model_file))
+
+    def generate_output(self, num: int):
+        noise = self.generate_noise(num).to(self.device)
+        fake_data = self.generator(noise)
+        return fake_data.detach().numpy()

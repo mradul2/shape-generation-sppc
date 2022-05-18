@@ -41,13 +41,37 @@ Principal Component Analysis (PCA) is a method to for dimensionality reduction o
 
 In this case, we apply PCA on the sorted point cloud by generating a matrix of size 3N x S, where N is number of points in each shape and S is the number of shapes in the dataset. And then perform PCA on the matrix: P = UΣV, resulting in the linear shape basis U and projections V. By default, the size of shape basis is chosen to be B = 100. 
 
+Point cloud data before and after changing basis:
+
+Before PCA              |  After PCA
+:-------------------------:|:-------------------------:
+![](images/pca/a1.png)   |  ![](images/pca/a2.png)
+![](images/pca/b1.png)   |  ![](images/pca/b2.png)
+
 ### Optimizing point ordering
 
+This method further tries to improve the point ordering done by KdTree sorting. 
 
-
+Process is as follows: 
+For I times:
+    For each shape in the dataset:
+        For K times:
+            Choose 2 random points (i, j) in the shape and swap them
+            if Reconstruction error decreases: 
+                swap(i, j)
+    Recompute the PCA basis
 ### Learning Shape Coefficients Using GAN
 
+After obtaining the projected point clouds in the basis U, they are used as the training data to train fully connected GAN. 
 
+Some specifications regarding the GAN training: 
+
+1. Both generator and discriminator are 4-layered fully connected networkd with 100 nodes in each layer. 
+2. Each layer is followed by a batch normlaization layer except the last layers. 
+3. Discriminator and Generator uses a LeakyReLU and ReLU respectively as the activation functions. 
+4. Adam optimizer with learning rate of 0.0001 and 0.0025 is used respectively for discriminator and generator.
+
+Instead of using the vanilla loss for the generator, we use the sum of L2 norms of the differences of mean and covariance of the vectorized intermediate generator activations of real and fake data respectively.
 
 ## Requirements
 

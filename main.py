@@ -1,17 +1,25 @@
 import argparse
 import os
+import pickle
 
 import numpy as np
+import wandb
 
+from src.gan import GAN
 from src.kd_tree import KdTree
 from src.pc_data import PCD
-import wandb
 from src.pca import PCA_
 from src.utils import visualise_point_cloud, visualise_point_cloud_gradient
 
-from src.gan import GAN
 
 def process_data(args):
+    """
+        Function to take the point clouds as input and save the 
+        transformed points along with the PCA parameters. 
+
+        Apply KD Tree sorting to the point clouds followed by 
+        iterative point ordering. 
+    """
     root_dir_path = args.load_path
     list_of_files = os.listdir(root_dir_path)
     print("Number of Shapes: ", len(list_of_files))
@@ -29,16 +37,22 @@ def process_data(args):
 
     pca = PCA_(matrix_np, 100)
     pca.fit_once()
-    # output = pca.transform_data(matrix_np)
-    # output = pca.inverse_transform_data(output)
-    # visualise_point_cloud_gradient(output[0])
+    visualise_point_cloud_gradient(matrix_np[0])
+    output = pca.transform_data(matrix_np)
+    output = pca.inverse_transform_data(output)
+    visualise_point_cloud_gradient(output[0])
 
-    print("Optimizing Point Ordering...")
-    I = 1000
-    K = 10000
-    for _ in range(I):
-        pca.optimize_point_ordering(K)
-    print("Point ordering completed")
+    if args.point_ordering: 
+        print("Optimizing Point Ordering...")
+        I = 1000
+        K = 10000
+        for _ in range(I):
+            pca.optimize_point_ordering(K)
+        print("Point ordering completed")
+
+    save_path = os.path.join(args.save_path, ("pca.pkl"))
+    pickle.dump(pca, open(save_path, "wb"))
+    print("Pickle object saved as: ", save_path)
 
     final_matrix = pca.transform_data(matrix_np)
     save_path = os.path.join(args.save_path, 'processed_data.npy')
@@ -47,10 +61,32 @@ def process_data(args):
     
 
 def train(args):
+    """
+        Function to take the transformed point cloud data 
+        as input and train a GAN using it
+    """
     print("Training function called...")
     gan = GAN(args)
     gan.train()
     gan.save_model()
+
+def generate(args):
+    """
+        Function to take the trained Generator network and PCA
+        parameters as input and genrate num point clouds using the 
+        Generator's output and pca's inverse transform
+    """
+    trained_gan = GAN(args)
+    trained_gan.load_weights()
+    num = 10
+    gan_output = trained_gan.generate_output(num)
+
+    pca_file_path = os.path.join(args.load_path, 'pca.pkl')
+    pca = pickle.load(open(pca_file_path, "rb"))
+    output = pca.inverse_transform_data(gan_output)
+    for i in range(num):
+        visualise_point_cloud_gradient(output[i])
+
 
 def main():
     argparser = argparse.ArgumentParser(description=__doc__)
@@ -66,6 +102,11 @@ def main():
         '--save_path',
         default='/Users/mradulagrawal/shape-generation-sppc/outputs',
         help='Directory path to save the data')
+    argparser.add_argument(
+        '--point_ordering',
+        type=bool,
+        default=False,
+        help='Option to perform the point ordering')
     argparser.add_argument(
         '--bs',
         default=16,

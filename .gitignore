@@ -4,3 +4,4 @@ src/__pycache__/
 .DS_Store
 src/pcd.pyc
 src/__init__.pyc
+outputs/pca.pkl
