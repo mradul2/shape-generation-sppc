@@ -1,11 +1,14 @@
+import os
+
+import numpy as np
+import torch
+import torch.nn as nn
+import wandb
 from cv2 import transform
 from jinja2 import pass_environment
-from torchvision import transforms
-import torch 
-import os
-import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
-import numpy as np
+from torchvision import transforms
+
 
 class Generator(nn.Module):
     def __init__(self, num_input, num_output):
@@ -55,15 +58,15 @@ class Discriminator(nn.Module):
 
         self.fc1 = nn.Linear(self.in_feat, 100)
         self.batch_norm1 = nn.BatchNorm1d(100)
-        self.act1 = nn.LeakyReLU()
+        self.act1 = nn.LeakyReLU(0.2)
 
         self.fc2 = nn.Linear(100, 100)
         self.batch_norm2 = nn.BatchNorm1d(100)
-        self.act2 = nn.LeakyReLU()
+        self.act2 = nn.LeakyReLU(0.2)
 
         self.fc3 = nn.Linear(100, 100)
         self.batch_norm3 = nn.BatchNorm1d(100)
-        self.act3 = nn.LeakyReLU()
+        self.act3 = nn.LeakyReLU(0.2)
 
         self.fc4 = nn.Linear(100, self.out_feat)
         self.act4 = nn.Sigmoid()
@@ -110,6 +113,8 @@ class GAN():
         self.num_epoch = self.args.epoch
         self.batch_size = self.args.bs
 
+        wandb.init(project="shape-gan")
+
         self.device = 'cpu'
         self.is_cuda_available = torch.cuda.is_available()
         if self.is_cuda_available:
@@ -142,11 +147,14 @@ class GAN():
 
         prediction_fake, r_3, r_2, r_1 = self.discriminator(fake_data) # (batch size, num feat)
         loss_fake = self.d_criterion(prediction_fake, torch.zeros((fake_data.shape[0], self.num_feat)).to(self.device))
-        acc_fake = (prediction_fake < 0.5).sum() / fake_data.shape[0]
         loss_fake.backward()
 
+        # loss = loss_real + loss_fake
+        # loss.backward()
+        loss = loss_real + loss_fake
+
         self.d_optim.step()
-        return (loss_real.item() + loss_fake.item()) / 2
+        return loss.item() / 2
 
     def acc_discriminator(self, real_data, fake_data):
         with torch.no_grad():
@@ -169,6 +177,7 @@ class GAN():
         loss_C = self.g_criterion(torch.var(intermediate_act_fake, 0), torch.var(intermediate_act_real, 0))
 
         loss = loss_E + loss_C
+        # loss = self.d_criterion(prediction_fake, torch.ones((fake_data.shape[0], self.num_feat)).to(self.device))
         loss.backward()
 
         self.g_optim.step()
@@ -215,8 +224,13 @@ class GAN():
             print("Discriminator Loss: ", avg_d_loss/len(self.train_loader))
             print("Discriminator Accuracy: ", self.d_acc)
             print("Generator Accuracy: ", self.g_acc)
-
-
+            wandb.log({
+                "Epoch": epoch,
+                "Generator Loss": avg_g_loss/len(self.train_loader),
+                "Discriminator Loss": avg_d_loss/len(self.train_loader),
+                "Generator Accuracy": self.g_acc,
+                "Discriminator Accuracy": self.d_acc
+            })
 
     def save_model(self):
         torch.save(self.generator.state_dict(), os.path.join(self.model_save_dir, 'generator.pth'))

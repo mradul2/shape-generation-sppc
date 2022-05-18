@@ -46,7 +46,7 @@ In this case, we apply PCA on the sorted point cloud by generating a matrix of s
 ## Requirements
 
 ```bash
-pip3 install requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ## Usage

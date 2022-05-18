@@ -5,6 +5,7 @@ import numpy as np
 
 from src.kd_tree import KdTree
 from src.pc_data import PCD
+import wandb
 from src.pca import PCA_
 from src.utils import visualise_point_cloud, visualise_point_cloud_gradient
 
@@ -76,6 +77,7 @@ def main():
     argparser.add_argument(
         '--glr',
         default=0.0025,
+        type=float,
         help='Learning rate for generator')
     argparser.add_argument(
         '--dlr',
