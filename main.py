@@ -52,9 +52,6 @@ def train(args):
     gan.train()
     gan.save_model()
 
-def generate(args):
-    pass
-
 def main():
     argparser = argparse.ArgumentParser(description=__doc__)
     argparser.add_argument(
@@ -89,6 +86,11 @@ def main():
         default=1000,
         type=int,
         help='Total number of Epochs')
+    argparser.add_argument(
+        '--wandb',
+        default=False,
+        type=bool,
+        help='Option for WandB logging')
     
     args = argparser.parse_args()
 
