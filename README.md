@@ -54,20 +54,16 @@ This method further tries to improve the point ordering done by KdTree sorting.
 
 Process is as follows: 
 
+```
 For I times:
-
     For each shape in the dataset:
-
         For K times:
-
             Choose 2 random points (i, j) in the shape and swap them
-
             if Reconstruction error decreases: 
-
                 swap(i, j)
-
     Recompute the PCA basis
-    
+```
+
 ### Learning Shape Coefficients Using GAN
 
 After obtaining the projected point clouds in the basis U, they are used as the training data to train fully connected GAN. 
