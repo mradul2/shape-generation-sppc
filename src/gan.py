@@ -255,13 +255,11 @@ class GAN():
 
     def load_weights(self):
         g_model_file = os.path.join(self.pretrained_path, 'generator.pth')
-        # d_model_file = os.path.join(self.pretrained_path, 'discriminator.pth')
 
         if self.device == 'cpu':
             self.generator.load_state_dict(torch.load(g_model_file, map_location=torch.device('cpu')))
         else:
             self.generator.load_state_dict(torch.load(g_model_file))
-        # self.discriminator.load_state_dict(torch.load(d_model_file))
 
     def generate_output(self, num: int):
         noise = self.generate_noise(num).to(self.device)

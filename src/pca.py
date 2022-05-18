@@ -1,5 +1,6 @@
 from ast import Num
 from audioop import avg
+from turtle import shape
 import numpy as np
 from sklearn.decomposition import PCA
 import random
@@ -24,7 +25,7 @@ class PCA_():
         self.pca.fit(self.matrix_reshaped)
 
     def reshape(self, matrix):
-        matrix_reshape = np.reshape(matrix, (self.num_data, self.num_point_cloud * self.num_point_cloud_dim))
+        matrix_reshape = np.reshape(matrix, (matrix.shape[0], self.num_point_cloud * self.num_point_cloud_dim))
         return matrix_reshape
 
     def rereshape(self, matrix):
@@ -47,18 +48,29 @@ class PCA_():
         return self.rereshape(matrix_inverse_transformed)
 
     def reconstruction_error(self, matrix):
-        shape_matrix = np.reshape(matrix, (3000, 1))
-        matrix = self.reshape(self.matrix)
-        myu = np.mean(matrix, axis=0).reshape(3000, 1)
-        loss = (shape_matrix - myu).T @ self.pca.components_.T @ self.pca.components_ + myu - shape_matrix
+        # Using numpy to compute the loss
+        # shape_matrix = np.reshape(matrix, (3000, 1))
+        # matrix = self.reshape(self.matrix)
+        # myu = np.mean(matrix, axis=0).reshape(3000, 1)
+        # loss = self.pca.transform()
+        # loss = (shape_matrix - myu).T @ self.pca.components_.T @ self.pca.components_ + myu - shape_matrix
+        # loss = norm(loss) ** 2
+        # return loss
+
+        # Using library to compute the loss (faster)
+        shape_vector = np.reshape(matrix, (1, 3000))
+        shape_vector_projected = self.pca.transform(shape_vector)
+        shape_vector_unprojected = self.pca.inverse_transform(shape_vector_projected)
+        loss = shape_vector - shape_vector_unprojected
         loss = norm(loss) ** 2
         return loss
+
 
     def optimize_point_ordering(self, K: int):
         avg_loss = 0
         for shape in tqdm(range(self.num_data)):
-            shape_matrix = self.matrix[shape].copy() # (1000, 3)
             for _ in range(K):
+                shape_matrix = self.matrix[shape].copy() # (1000, 3)
                 recon_error_prev = self.reconstruction_error(shape_matrix)
                 random_nums = random.sample(range(0, self.num_point_cloud), 2)
                 temp = shape_matrix[random_nums[0]]

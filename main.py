@@ -37,15 +37,17 @@ def process_data(args):
 
     pca = PCA_(matrix_np, 100)
     pca.fit_once()
-    visualise_point_cloud_gradient(matrix_np[0])
-    output = pca.transform_data(matrix_np)
-    output = pca.inverse_transform_data(output)
-    visualise_point_cloud_gradient(output[0])
+
+    # Visualize some point clouds
+    # visualise_point_cloud_gradient(matrix_np[0])
+    # output = pca.transform_data(matrix_np)
+    # output = pca.inverse_transform_data(output)
+    # visualise_point_cloud_gradient(output[0])
 
     if args.point_ordering: 
         print("Optimizing Point Ordering...")
         I = 1000
-        K = 10000
+        K = 10
         for _ in range(I):
             pca.optimize_point_ordering(K)
         print("Point ordering completed")
@@ -85,7 +87,7 @@ def generate(args):
     pca = pickle.load(open(pca_file_path, "rb"))
     output = pca.inverse_transform_data(gan_output)
     for i in range(num):
-        visualise_point_cloud_gradient(output[i])
+        visualise_point_cloud(output[i])
 
 
 def main():
