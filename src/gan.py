@@ -210,9 +210,10 @@ class GAN():
                 # First Train the Discriminator with fake data generated and real data present
                 fake_data = self.generator(noise) # (batch size, num feat)
                 real_data = data # (batch size, num feat)
+                
                 # According to the paper, discriminator is trained only when the accuracy is below 80%
                 if self.g_acc < 0.8:
-                    d_loss = self.train_discriminator(fake_data, real_data)
+                    d_loss = self.train_discriminator(fake_data.detach(), real_data)
                     avg_d_loss += d_loss
                     prev_d_loss = d_loss
                 else:
@@ -220,7 +221,6 @@ class GAN():
                 # Discriminator training step completed
 
                 # Second, Train the Generator with another fake data
-                fake_data = self.generator(noise)
                 g_loss = self.train_generator(fake_data, real_data)
                 avg_g_loss += g_loss
                 # Generator training step completed

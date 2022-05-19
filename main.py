@@ -35,8 +35,8 @@ def process_data(args):
     print("KdTree build complete")
     matrix_np = np.array(matrix)
 
-    pca = PCA_(matrix_np, 100)
-    pca.fit_once()
+    pca = PCA_(size_basis=100, num_data=5000)
+    pca.fit_once(matrix_np)
 
     # Visualize some point clouds
     # visualise_point_cloud_gradient(matrix_np[0])
@@ -47,13 +47,16 @@ def process_data(args):
     if args.point_ordering: 
         print("Optimizing Point Ordering...")
         I = 1000
-        K = 10
-        for _ in range(I):
-            pca.optimize_point_ordering(K)
+        K = 10000
+        for i in range(I):
+            print("Iteration: ", i)
+            avg_recon_error, matrix_np = pca.optimize_point_ordering(K, matrix_np)
+            # After every shape is processed, recompute the PCA basis
+            pca.fit_once(matrix_np)
         print("Point ordering completed")
 
     save_path = os.path.join(args.save_path, ("pca.pkl"))
-    pickle.dump(pca, open(save_path, "wb"))
+    pickle.dump(pca.pca, open(save_path, "wb"))
     print("Pickle object saved as: ", save_path)
 
     final_matrix = pca.transform_data(matrix_np)
@@ -85,7 +88,8 @@ def generate(args):
 
     pca_file_path = os.path.join(args.load_path, 'pca.pkl')
     pca = pickle.load(open(pca_file_path, "rb"))
-    output = pca.inverse_transform_data(gan_output)
+    output = pca.inverse_transform(gan_output)
+    output = output.reshape(output.shape[0], 1000, 3)
     for i in range(num):
         visualise_point_cloud(output[i])
 
