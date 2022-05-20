@@ -39,10 +39,10 @@ def process_data(args):
     pca.fit_once(matrix_np)
 
     # Visualize some point clouds
-    # visualise_point_cloud_gradient(matrix_np[0])
-    # output = pca.transform_data(matrix_np)
-    # output = pca.inverse_transform_data(output)
-    # visualise_point_cloud_gradient(output[0])
+    visualise_point_cloud_gradient(matrix_np[0])
+    output = pca.transform_data(matrix_np)
+    output = pca.inverse_transform_data(output)
+    visualise_point_cloud_gradient(output[0])
 
     if args.point_ordering: 
         print("Optimizing Point Ordering...")
@@ -56,7 +56,7 @@ def process_data(args):
         print("Point ordering completed")
 
     save_path = os.path.join(args.save_path, ("pca.pkl"))
-    pickle.dump(pca.pca, open(save_path, "wb"))
+    pickle.dump(pca, open(save_path, "wb"))
     print("Pickle object saved as: ", save_path)
 
     final_matrix = pca.transform_data(matrix_np)
