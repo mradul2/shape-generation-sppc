@@ -88,7 +88,7 @@ def generate(args):
 
     pca_file_path = os.path.join(args.load_path, 'pca.pkl')
     pca = pickle.load(open(pca_file_path, "rb"))
-    output = pca.inverse_transform(gan_output)
+    output = pca.inverse_transform_data(gan_output)
     output = output.reshape(output.shape[0], 1000, 3)
     for i in range(num):
         visualise_point_cloud(output[i])

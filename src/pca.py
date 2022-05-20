@@ -1,10 +1,12 @@
+import random
 from ast import Num
 from audioop import avg
 from turtle import shape
+
 import numpy as np
 from sklearn.decomposition import PCA
-import random
 from tqdm import tqdm
+
 
 class PCA_():
     def __init__(self, size_basis: int, num_data: int):
@@ -48,6 +50,31 @@ class PCA_():
         shape_vector_unprojected = self.pca.inverse_transform(shape_vector_projected)
         return np.sum((shape_vector - shape_vector_unprojected) ** 2, axis=1).mean()
 
+    def optimize_point_ordering_vectorized(self, K: int, matrix):
+        total_error_prev = self.reconstruction_error(matrix.copy()) # (5000, 1000, 3)
+        print("Before Re-ordering: ", total_error_prev)
+        for _ in tqdm(range(K)):
+            matrix_copy = matrix.copy() # (1000, 3)
+            recon_error_prev = self.reconstruction_error(matrix_copy)
+
+            random_nums = random.sample(range(0, self.num_point_cloud), 2)
+            # Matrices were not properly swapping up if these copies are not made
+            temp0 = matrix_copy[:, random_nums[0]].copy()
+            temp1 = matrix_copy[:, random_nums[1]].copy() 
+
+            # Swap the two random points and calc the recon error
+            matrix_copy[:, random_nums[0]] = temp1
+            matrix_copy[:, random_nums[1]] = temp0
+            recon_error = self.reconstruction_error(matrix_copy)
+            # If the reconstruction error decrease then swap
+            if recon_error < recon_error_prev:
+                matrix[shape][:, random_nums[1]] = temp0
+                matrix[shape][:, random_nums[0]] = temp1
+                print("WOW")
+
+        total_error = self.reconstruction_error(matrix.copy()) # (5000, 1000, 3)
+        print("After Re-ordering: ", total_error)
+        return total_error, matrix
 
     def optimize_point_ordering(self, K: int, matrix):
         total_error_prev = self.reconstruction_error(matrix.copy()) # (5000, 1000, 3)

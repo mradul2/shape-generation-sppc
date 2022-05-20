@@ -9,10 +9,6 @@ This repository implements the following utilities:
 
 ## Various methods used in the work
 
-### Poisson Disc Sampling
-
-
-
 ### K Dimensional Tree
 
 Binary search tree in which data in each node is a K-dimensional point in space. 
