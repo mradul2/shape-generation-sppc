@@ -1,4 +1,4 @@
-# Shape Generation Using Spatially Partitioned Point Clouds 
+# Shape Generation Using Spatially Partitioned Point Clouds
 
 This repository implements the following utilities:
 

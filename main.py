@@ -26,10 +26,12 @@ def process_data(args):
         Returns:
             None
     """
+    # List of all the point cloud files
     root_dir_path = args.load_path
     list_of_files = os.listdir(root_dir_path)
     print("Number of Shapes: ", len(list_of_files))
     
+    # Create the PCD object for all the point clouds and sort them using KD Tree
     print("Building KdTree for all shapes...")
     matrix = []
     for file in list_of_files:
@@ -41,7 +43,9 @@ def process_data(args):
     print("KdTree build complete")
     matrix_np = np.array(matrix)
 
-    pca = PCA_(size_basis=100, num_data=5000)
+    # Create the PCA object for the point clouds for shape basis = 100
+    pca = PCA_(size_basis=100, num_data=matrix_np.shape[0])
+    # Fit the PCA object on the point clouds
     pca.fit_once(matrix_np)
 
     # Visualize some point clouds
@@ -50,21 +54,26 @@ def process_data(args):
     output = pca.inverse_transform_data(output)
     visualise_point_cloud_gradient(output[0])
 
+    # If the point ordering option is selected, perform the point ordering
     if args.point_ordering: 
         print("Optimizing Point Ordering...")
         I = 1000
         K = 10000
+        # For I number of iterations:
         for i in range(I):
             print("Iteration: ", i)
+            # For K times, perform the point ordering
             avg_recon_error, matrix_np = pca.optimize_point_ordering(K, matrix_np)
             # After every shape is processed, recompute the PCA basis
             pca.fit_once(matrix_np)
         print("Point ordering completed")
 
+    # Save the PCA parameters as a pickle file
     save_path = os.path.join(args.save_path, ("pca.pkl"))
     pickle.dump(pca, open(save_path, "wb"))
     print("Pickle object saved as: ", save_path)
 
+    # Save the transformed point clouds as a numpy file
     final_matrix = pca.transform_data(matrix_np)
     save_path = os.path.join(args.save_path, 'processed_data.npy')
     np.save(save_path, final_matrix)
@@ -82,9 +91,11 @@ def train(args):
         Returns:    
             None
     """
-    print("Training function called...")
+    # Create the GAN object
     gan = GAN(args)
+    # Call the train functio
     gan.train()
+    # Save the model weights
     gan.save_model()
 
 def generate(args):
@@ -99,15 +110,23 @@ def generate(args):
         Returns:
             None
     """
+    # Load the trained GAN
     trained_gan = GAN(args)
     trained_gan.load_weights()
+
+    # Generate num number of point clouds using the trained GAN
     num = 10
     gan_output = trained_gan.generate_output(num)
 
+    # Load the PCA parameters from the input directory
     pca_file_path = os.path.join(args.load_path, 'pca.pkl')
     pca = pickle.load(open(pca_file_path, "rb"))
+
+    # Inverse transform the generated point clouds using GAN data and PCA
     output = pca.inverse_transform_data(gan_output)
     output = output.reshape(output.shape[0], 1000, 3)
+
+    # Visualize those generated point clouds
     for i in range(num):
         visualise_point_cloud(output[i])
 
@@ -167,10 +186,13 @@ def main():
 
     # According to the mode, call the appropriate function
     if args.mode == 'process_data':
+        print("Processing data...")
         process_data(args)
     elif args.mode == 'train':
+        print("Training GAN...")
         train(args)
     elif args.mode == 'generate':
+        print("Generating point clouds using trained GAN...")
         generate(args)
     else:
         print("Wrong mode provided")
