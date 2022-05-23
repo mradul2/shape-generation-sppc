@@ -9,38 +9,100 @@ from tqdm import tqdm
 
 
 class PCA_():
+    """
+        Class for PCA operations and optimization
+    """
     def __init__(self, size_basis: int, num_data: int):
+        """
+            Initialize the PCA object
+
+            Args:
+                size_basis: The number of basis vectors to use
+                num_data: The number of data points to use
+        """
         self.num_data = num_data
         self.num_point_cloud = 1000
         self.num_point_cloud_dim = 3
         self.size_basis = size_basis
 
     def fit_once(self, matrix):
+        """
+            Function to fit the PCA model
+
+            Args:
+                matrix: The matrix to fit the model to
+        """
         self.pca = PCA(n_components=self.size_basis)
         matrix_reshaped = np.reshape(matrix, (matrix.shape[0], self.num_point_cloud * self.num_point_cloud_dim))
         matrix_reshaped = self.normalize(matrix_reshaped)
         self.pca.fit(matrix_reshaped)
 
-    def rereshape(self, matrix):
-        matrix_reshape = np.reshape(matrix, (matrix.shape[0], self.num_point_cloud, self.num_point_cloud_dim))
-        return matrix_reshape
-
     def normalize(self, matrix):
+        """
+            Function to the normalise the point cloud data
+            before fitting the PCA model
+
+            Args:
+                matrix: The matrix to normalise
+
+            Returns:
+                The normalised matrix
+        """
         mean = np.mean(matrix, axis=0)
         std = np.std(matrix, axis=0)
+        
+        # Normalise the data
         matrix = (matrix - mean) / std
+        # The shape of normalized matrix is (num_data, num_point_cloud * num_point_cloud_dim)!
         return matrix
 
     def transform_data(self, matrix):
+        """
+            Function to transform the original point cloud data 
+            to the new basis useinf the trained PCA model
+
+            Args:
+                matrix: The matrix to transform
+
+            Returns:
+                The transformed matrix
+        """
+        # First reshape the input matrix to (num_data, num_point_cloud * num_point_cloud_dim)
         matrix_reshape = np.reshape(matrix, (matrix.shape[0], self.num_point_cloud * self.num_point_cloud_dim))
+       
+        # Perform the transformation
         matrix_transformed = self.pca.transform(matrix_reshape)
+        # Shape of transformed matrix is (num_data, num_basis)!
         return matrix_transformed
 
     def inverse_transform_data(self, matrix):
+        """
+            Function to inverse transform the new basis to the original point cloud data
+
+            Args:
+                matrix: The matrix to inverse transform of shape (num_data, num_basis)
+
+            Returns:
+                The inverse transformed matrix
+        """
+        # Perform the inverse transformation
+        # Shape of the inverse transformed matrix is (num_data, num_point_cloud * num_point_cloud_dim)
         matrix_inverse_transformed = self.pca.inverse_transform(matrix)
-        return self.rereshape(matrix_inverse_transformed)
+
+        # Reshape the matrix to (num_data, num_point_cloud, num_point_cloud_dim)
+        matrix_inverse_transformed_reshaped = np.reshape(matrix_inverse_transformed, (matrix_inverse_transformed.shape[0], self.num_point_cloud, self.num_point_cloud_dim))
+        return matrix_inverse_transformed_reshaped
 
     def reconstruction_error(self, matrix):
+        """
+            Function to calculate the reconstruction error of the point cloud data
+
+            Args:
+                matrix: The matrix to calculate the reconstruction error of
+
+            Returns:
+                The reconstruction error
+        """
         # Using library to compute the loss (faster than manual numpy code)
         if matrix.ndim == 2:
             shape_vector = np.reshape(matrix, (1, 3000))
@@ -51,6 +113,17 @@ class PCA_():
         return np.sum((shape_vector - shape_vector_unprojected) ** 2, axis=1).mean()
 
     def optimize_point_ordering_vectorized(self, K: int, matrix):
+        """
+            Function to optimize the point ordering of the point cloud data
+            using the vectorized implementation
+
+            Args:
+                K: The number of iterations to perform
+                matrix: The matrix to optimize the point ordering of
+
+            Returns:
+                Total reconstruction error and the optimized matrix
+        """
         total_error_prev = self.reconstruction_error(matrix.copy()) # (5000, 1000, 3)
         print("Before Re-ordering: ", total_error_prev)
         for _ in tqdm(range(K)):
@@ -77,6 +150,17 @@ class PCA_():
         return total_error, matrix
 
     def optimize_point_ordering(self, K: int, matrix):
+        """
+            Function to optimize the point ordering of the point cloud data
+            without using the vectorized implementation
+
+            Args:
+                K: The number of iterations to perform
+                matrix: The matrix to optimize the point ordering of
+
+            Returns:
+                Total reconstruction error and the optimized matrix
+        """
         total_error_prev = self.reconstruction_error(matrix.copy()) # (5000, 1000, 3)
         print("Before Re-ordering: ", total_error_prev)
         for shape in tqdm(range(self.num_data)):

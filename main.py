@@ -19,6 +19,12 @@ def process_data(args):
 
         Apply KD Tree sorting to the point clouds followed by 
         iterative point ordering. 
+
+        Args:
+            args: Arguments passed from the command line
+
+        Returns:
+            None
     """
     root_dir_path = args.load_path
     list_of_files = os.listdir(root_dir_path)
@@ -69,6 +75,12 @@ def train(args):
     """
         Function to take the transformed point cloud data 
         as input and train a GAN using it
+
+        Args:
+            args: Arguments passed from the command line
+
+        Returns:    
+            None
     """
     print("Training function called...")
     gan = GAN(args)
@@ -80,6 +92,12 @@ def generate(args):
         Function to take the trained Generator network and PCA
         parameters as input and genrate num point clouds using the 
         Generator's output and pca's inverse transform
+
+        Args:
+            args: Arguments passed from the command line
+
+        Returns:
+            None
     """
     trained_gan = GAN(args)
     trained_gan.load_weights()
@@ -95,6 +113,12 @@ def generate(args):
 
 
 def main():
+    """
+        Main function to take the arguments from the command line
+        and call the appropriate functions    
+    """
+
+    # Parse the arguments
     argparser = argparse.ArgumentParser(description=__doc__)
     argparser.add_argument(
         '-m', '--mode',
@@ -141,6 +165,7 @@ def main():
     
     args = argparser.parse_args()
 
+    # According to the mode, call the appropriate function
     if args.mode == 'process_data':
         process_data(args)
     elif args.mode == 'train':
