@@ -37,8 +37,15 @@ class Generator(nn.Module):
         self.act3 = nn.ReLU()
         self.batch_norm3 = nn.BatchNorm1d(100)
 
+        # self.fc4 = nn.Linear(100, 100)
+        # self.act4 = nn.ReLU()
+        # self.batch_norm4 = nn.BatchNorm1d(100)
+
         self.fc4 = nn.Linear(100, self.out_feat)
         self.act4 = nn.Tanh()
+
+        # self.fc5 = nn.Linear(100, self.out_feat)
+        # self.act5 = nn.Tanh()
 
     def forward(self, input):
         """
@@ -62,8 +69,15 @@ class Generator(nn.Module):
         x = self.act3(x)
         x = self.batch_norm3(x)
 
+        # x = self.fc4(x)
+        # x = self.act4(x)
+        # x = self.batch_norm4(x)
+
         x = self.fc4(x)
         output = self.act4(x)
+
+        # x = self.fc5(x)
+        # output = self.act5(x)
 
         return output
 
@@ -84,19 +98,23 @@ class Discriminator(nn.Module):
         self.out_feat = num_output
 
         self.fc1 = nn.Linear(self.in_feat, 100)
-        self.batch_norm1 = nn.BatchNorm1d(100)
         self.act1 = nn.LeakyReLU(0.2)
+        self.batch_norm1 = nn.BatchNorm1d(100)
 
         self.fc2 = nn.Linear(100, 100)
-        self.batch_norm2 = nn.BatchNorm1d(100)
         self.act2 = nn.LeakyReLU(0.2)
+        self.batch_norm2 = nn.BatchNorm1d(100)
 
         self.fc3 = nn.Linear(100, 100)
-        self.batch_norm3 = nn.BatchNorm1d(100)
         self.act3 = nn.LeakyReLU(0.2)
+        self.batch_norm3 = nn.BatchNorm1d(100)
 
-        self.fc4 = nn.Linear(100, self.out_feat)
-        self.act4 = nn.Sigmoid()
+        self.fc4 = nn.Linear(100, 100)
+        self.act4 = nn.LeakyReLU(0.2)
+        self.batch_norm4 = nn.BatchNorm1d(100)
+
+        self.fc5 = nn.Linear(100, self.out_feat)
+        self.act5 = nn.Sigmoid()
 
     def forward(self, input):
         """
@@ -122,9 +140,13 @@ class Discriminator(nn.Module):
 
         x_4 = self.fc4(x_3)
         x_4_a = self.act4(x_4)
+        x_4 = self.batch_norm4(x_4_a)
+
+        x_5 = self.fc5(x_4)
+        x_5_a = self.act5(x_5)
 
         feature = x_3_a
-        output = x_4_a
+        output = x_5_a
         return feature, output
 
 class TrainingDataset(Dataset):
@@ -201,7 +223,7 @@ class GAN():
 
         # Create the model objects for the discriminator and generator
         self.generator = Generator(self.num_feat, self.num_feat).to(self.device)
-        self.discriminator = Discriminator(self.num_feat, self.num_feat).to(self.device)
+        self.discriminator = Discriminator(self.num_feat, 1).to(self.device)
 
         # Adam optimizers for both discriminator and generator
         self.g_optim = torch.optim.Adam(self.generator.parameters(), self.generator_lr)
@@ -222,13 +244,15 @@ class GAN():
         self.d_optim.zero_grad()
 
         feature_real, prediction_real = self.discriminator(real_data) # (batch size, num feat)
-        loss_real = nn.BCELoss()(prediction_real, torch.ones((real_data.shape[0], self.num_feat)).to(self.device))
+        loss_real = nn.BCELoss()(prediction_real, torch.ones((real_data.shape[0], 1)).to(self.device))
+        loss_real.backward()
 
         feature_fake, prediction_fake = self.discriminator(fake_data) # (batch size, num feat)
-        loss_fake = nn.BCELoss()(prediction_fake, torch.zeros((fake_data.shape[0], self.num_feat)).to(self.device))
+        loss_fake = nn.BCELoss()(prediction_fake, torch.zeros((fake_data.shape[0], 1)).to(self.device))
+        loss_fake.backward()
 
         loss = loss_real + loss_fake
-        loss.backward()
+        # loss.backward()
 
         self.d_optim.step()
         return loss.item()
@@ -246,10 +270,10 @@ class GAN():
         """
         with torch.no_grad():
             self.discriminator.eval()
-            feature_real, prediction_real = self.discriminator(real_data) # (batch size, num feat)
-            acc_real = (prediction_real > 0.5).sum() / (real_data.shape[0] * self.num_feat)
-            feature_fake, prediction_fake = self.discriminator(fake_data) # (batch size, num feat)
-            acc_fake = (prediction_fake < 0.5).sum() / (fake_data.shape[0] * self.num_feat)
+            feature_real, prediction_real = self.discriminator(real_data) # (batch size, 1)
+            acc_real = (prediction_real > 0.5).sum() / (real_data.shape[0])
+            feature_fake, prediction_fake = self.discriminator(fake_data) # (batch size, 1)
+            acc_fake = (prediction_fake < 0.5).sum() / (fake_data.shape[0])
             return acc_real, acc_fake
 
     def train_generator(self, fake_data, real_data):
@@ -266,8 +290,8 @@ class GAN():
         self.generator.train()
         self.g_optim.zero_grad()
 
-        feature_fake, prediction_fake = self.discriminator(fake_data) # (batch size, num feat)
-        feature_real, prediction_real = self.discriminator(real_data) # (batch size, num feat)
+        feature_fake, prediction_fake = self.discriminator(fake_data) # (batch size, 1)
+        feature_real, prediction_real = self.discriminator(real_data) # (batch size, 1)
         
         intermediate_act_fake = feature_fake
         intermediate_act_real = feature_real
@@ -277,10 +301,10 @@ class GAN():
         loss_E = nn.MSELoss()(torch.mean(intermediate_act_fake, 0), torch.mean(intermediate_act_real, 0))
         loss_C = nn.MSELoss()(torch.var(intermediate_act_fake, 0), torch.var(intermediate_act_real, 0))
 
-        loss = loss_E + loss_C
+        loss = (loss_E + loss_C)
 
         # Vanilla loss for generator:
-        # loss = nn.BCELoss()(prediction_fake, torch.ones((fake_data.shape[0], self.num_feat)).to(self.device))
+        # loss = nn.BCELoss()(prediction_fake, torch.ones((fake_data.shape[0], 1)).to(self.device))
        
         loss.backward()
 
@@ -302,7 +326,7 @@ class GAN():
             # Obtain the prediction from the generator
             feature_fake, prediction_fake = self.discriminator(fake_data)
             # Calculate the accuracy of that prediction to be true
-            acc = (prediction_fake > 0.5).sum() / (fake_data.shape[0] * self.num_feat)
+            acc = (prediction_fake > 0.5).sum() / (fake_data.shape[0] * 1)
             return acc
 
     def train(self):    
@@ -315,6 +339,9 @@ class GAN():
 
         self.discriminator.train()
         self.generator.train()
+
+        acc_d = 1.0
+        acc_g = 1.0
 
         # Main training loop
         for epoch in tqdm(range(self.num_epoch)):
@@ -330,7 +357,7 @@ class GAN():
                 real_data = data # (batch size, num feat)
                 
                 # According to the paper, discriminator is trained only when the accuracy is below 80%
-                if acc_g < 0.8:
+                if acc_d < 0.8:
                     d_loss = self.train_discriminator(fake_data.detach(), real_data)
                     avg_d_loss += d_loss
                     prev_d_loss = d_loss
@@ -344,14 +371,15 @@ class GAN():
                 # Generator training step completed
 
                 # Update accuracy
-                acc_d_real, acc_dfake = self.acc_discriminator(real_data, fake_data)
+                acc_d_real, acc_d_fake = self.acc_discriminator(real_data, fake_data)
+                acc_d = (acc_d_real + acc_d_fake) / 2
                 acc_g = self.acc_generator(fake_data)
 
             print("For Epoch: ", epoch)
             print("Generator Loss: ", avg_g_loss/len(self.train_loader))
             print("Discriminator Loss: ", avg_d_loss/len(self.train_loader))
             print("Discriminator Accuracy Real: ", acc_d_real)
-            print("Discriminator Accuracy Fake: ", acc_dfake)
+            print("Discriminator Accuracy Fake: ", acc_d_fake)
             print("Generator Accuracy: ", acc_g)
 
             # If WanbB logging is enabled, then log the various training values on wandb

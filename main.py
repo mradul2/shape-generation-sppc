@@ -57,7 +57,8 @@ def process_data(args):
     # If the point ordering option is selected, perform the point ordering
     if args.point_ordering: 
         print("Optimizing Point Ordering...")
-        I = 1000
+        # Values of I and K according to the paper
+        I = 1000 
         K = 10000
         # For I number of iterations:
         for i in range(I):
